@@ -23,6 +23,10 @@ type asset struct {
 	Title  string
 }
 
+func (a asset) Thumb(width int) template.Srcset {
+	return template.Srcset(fmt.Sprintf("/iiif/%s/full/%d,/0/default.jpg", a.IIIFID, width))
+}
+
 var emptyAsset asset
 
 var s3assets []asset

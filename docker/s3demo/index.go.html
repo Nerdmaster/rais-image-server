@@ -1,17 +1,231 @@
-{{block "title" .}}RAIS: S3 Images Demo{{end}}
+{{block "title" .}}Super-Cool RAIS Demo Proving Beyond The Shadow of any Doubt that RAIS is Amazing{{end}}
 
 {{block "content" .}}
-  <h1>RAIS: S3 Images Demo</h1>
-  {{.Bucket}} list:
 
-  <div>
+  <header>
+    <h1 id="title">Rodent-Assimilated Image Server</h1>
+    <div class="logo">
+      <img src="/static/gocutus.png" alt="Gocutus: half-gopher, half robot" />
+      <blockquote><em>Your images will be assimilated.  RAISistance is futile.</em> &horbar;Gocutus</blockquote>
+    </div>
+    <div class="github">
+      <a href="https://github.com/uoregon-libraries/rais-image-server">Check out RAIS on Github</a>
+    </div>
+  </header>
+
+  <hr />
+
+  <div class="container">
+
+  <aside class="info">
+		<h2 id="info">Information</h2>
+    Fun fact: <strong>these images represent some of the worst-case scenarios
+    an image server could deal with.</strong>
+    <ul>
+      <li>
+        All images are JP2 format - amazingly space-efficient, but also
+        painfully slow to decode.
+      </li>
+
+      <li>
+        All images are at least 400 megapixels.  One is nearly 800.  Yes, two
+        zeroes, as in <em>hundreds of megapixels</em>.
+      </li>
+
+      <li>
+        All images' thumbnails are being rendered 100% dynamically:
+        there is <strong>no</strong> thumbnail caching
+      </li>
+
+      <li>
+        All images' tiles are also rendered 100% dynamically:
+        there is <strong>no</strong> tile-level caching
+      </li>
+
+      <li>
+        This RAIS demo is running on a "nanode": a Linode server with 1 vCPU
+        and 1 gig of RAM.  It's the "budget" option, meant for prototyping and
+        testing.  It costs me <em>just $5 (USD) per month</em>.
+      </li>
+
+      <li>
+        RAIS is running on the nanode... and inside a Docker container which is
+        proxied by another docker container.  (See the RAIS S3 Demo for a
+        general idea what's going on here)
+      </li>
+
+			<li>
+        Despite all this, <a href="#perf">performance benchmarks</a> are
+        <strong>surprisingly good</strong>.  Possibly the best of any system
+        capable of running on such low-end hardware.
+      </li>
+    </ul>
+  </aside>
+
+  <div class="gallery">
+		<h2 id="images">"Gallery"</h2>
     {{range .Assets}}
-    <div style="display: inline-block; width: 30%; height: 240px; padding: 0.5em;">
+    <div class="image">
       <a href="/asset/{{.Key}}">
-        <img src="/iiif/{{.IIIFID}}/full/,240/0/default.jpg" alt="{{.Title}}" height="240px" border=0 />
-        <p>{{.Title}}</p>
+        <picture>
+          <source media="(min-width: 800px)" srcset="{{.Thumb 240}}">
+          <source media="(max-width: 480px)" srcset="{{.Thumb 240}}">
+          <img src="{{.Thumb 120}}" alt="{{.Title}}" border=0 />
+        </picture>
       </a>
     </div>
     {{end}}
   </div>
+
+  <div class="benchmarks">
+    <h2 id="perf">Performance / Benchmarking</h2>
+
+    <div class="test-info">
+      <h3>Test 1</h3>
+      <p><em>Huge images?  No caching?  No hardware budget?  No problem.</em></p>
+      <p>A 430-megapixel JP2 image, resized down to 200x400 pixels, 300 times in a row:</p>
+    </div>
+
+    <div class="test-output">
+      <pre>
+$ ab -n 300 'http://45.56.93.48/iiif/s3%3Atestjp2s%2F0-A
+lmeida_Junior_.png.jp2/full/!400,400/0/default.jpg'
+This is ApacheBench, Version 2.3 &lt;$Revision: 1807734 $&gt;
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 45.56.93.48 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Finished 300 requests
+
+
+Server Software:        nginx/1.15.5
+Server Hostname:        45.56.93.48
+Server Port:            80
+
+Document Path:          /iiif/s3%3Atestjp2s%2F0-Almeida_Junior_.png.jp2/full/!400,400/0/default.jpg
+Document Length:        12152 bytes
+
+Concurrency Level:      1
+Time taken for tests:   62.003 seconds
+Complete requests:      300
+Failed requests:        0
+Total transferred:      3705900 bytes
+HTML transferred:       3645600 bytes
+Requests per second:    4.84 [#/sec] (mean)
+Time per request:       206.675 [ms] (mean)
+Time per request:       206.675 [ms] (mean, across all concurrent requests)
+Transfer rate:          58.37 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       1
+Processing:   185  206  18.6    202     320
+Waiting:      181  204  18.5    199     315
+Total:        185  207  18.6    202     320
+
+Percentage of the requests served within a certain time (ms)
+  50%    202
+  66%    208
+  75%    213
+  80%    215
+  90%    224
+  95%    237
+  98%    278
+  99%    302
+ 100%    320 (longest request)
+      </pre>
+    </div>
+
+    <div class="test-info">
+      <h3>Test 2</h3>
+      <p>
+        Same 430-megapixel image, same weak server, same refusal to show mercy
+        and enable the cache.
+      </p>
+
+      <p>
+        But this time it's 1000 requests, <strong>eight at a time</strong>.
+        It's not pretty, but RAM doesn't explode, we don't go into swap, RAIS
+        doesn't crash, and the server doesn't start killing off processes.
+      </p>
+
+      <p>
+        In fact, though individual response time is slow, overall throughput is
+        roughly the same as in the prior test.
+      </p>
+
+      <p>
+        <strong>Note</strong>: If you expect this kind of traffic, you really
+        want a better server.  On a fairly cheap EC2 instance,
+        <a href="https://github.com/uoregon-libraries/rais-image-server/wiki/Performance#8-concurrent-requests">
+          RAIS performs quite admirably</a>.
+      </p>
+    </div>
+
+    <div class="test-output">
+      <pre>
+$ ab -n 1000 -c 8 'http://45.56.93.48/iiif/s3%3Atestjp2s
+%2F0-Almeida_Junior_.png.jp2/full/!400,400/0/default.jpg'
+This is ApacheBench, Version 2.3 &lt;$Revision: 1807734 $&gt;
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 45.56.93.48 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:        nginx/1.15.5
+Server Hostname:        45.56.93.48
+Server Port:            80
+
+Document Path:          /iiif/s3%3Atestjp2s%2F0-Almeida_Junior_.png.jp2/full/!400,400/0/default.jpg
+Document Length:        12152 bytes
+
+Concurrency Level:      8
+Time taken for tests:   209.215 seconds
+Complete requests:      1000
+Failed requests:        0
+Total transferred:      12353000 bytes
+HTML transferred:       12152000 bytes
+Requests per second:    4.78 [#/sec] (mean)
+Time per request:       1673.720 [ms] (mean)
+Time per request:       209.215 [ms] (mean, across all concurrent requests)
+Transfer rate:          57.66 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.3      0       4
+Processing:   826 1670 206.0   1678    2292
+Waiting:      821 1660 205.0   1671    2288
+Total:        826 1670 206.0   1678    2292
+
+Percentage of the requests served within a certain time (ms)
+  50%   1678
+  66%   1759
+  75%   1800
+  80%   1825
+  90%   1906
+  95%   1967
+  98%   2041
+  99%   2104
+ 100%   2292 (longest request)
+      </pre>
+    </div>
+  </div>
+
+  </div>
+
 {{end}}

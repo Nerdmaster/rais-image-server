@@ -2,7 +2,7 @@
 
 {{block "content" .}}
 <h1>{{.Asset.Title}}</h1>
-<div id="openseadragon1" style="width: 1200px; height: 600px;"></div>
+<div id="openseadragon1"></div>
 {{end}}
 
 {{block "extrajs" .}}
@@ -11,8 +11,6 @@
     id: "openseadragon1",
     prefixUrl: "/osd/images/",
     tileSources: "/iiif/{{.Asset.IIIFID}}/info.json",
-    showNavigator: true,
-    sequenceMode: true,
     showNavigator: true,
   });
 </script>
