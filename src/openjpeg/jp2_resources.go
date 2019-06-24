@@ -4,11 +4,12 @@ package openjpeg
 // #include <openjpeg.h>
 // #include <stdlib.h>
 // #include "handlers.h"
+// #include "stream.h"
 import "C"
 
 import (
+	"bytes"
 	"fmt"
-	"unsafe"
 )
 
 // rawDecode runs the low-level operations necessary to actually get the
@@ -62,12 +63,16 @@ func (i *JP2Image) rawDecode() (jp2 *C.opj_image_t, err error) {
 }
 
 func initializeStream(filename string) (*C.opj_stream_t, error) {
-	cFilename := C.CString(filename)
-	defer C.free(unsafe.Pointer(cFilename))
+	var asset, err = lookupAsset(filename)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to lookup %q: %s", filename, err)
+	}
 
-	stream := C.opj_stream_create_default_file_stream(cFilename, 1)
+	var s = newImageStream(bytes.NewReader(asset.data))
+	stream := C.new_stream(C.OPJ_UINT64(s.id), C.OPJ_UINT64(len(asset.data)))
 	if stream == nil {
 		return nil, fmt.Errorf("failed to create stream in %#v", filename)
 	}
+
 	return stream, nil
 }
