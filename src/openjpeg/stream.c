@@ -19,10 +19,10 @@ void free_stream(void *stream_id) {
   freeStream((OPJ_UINT64)stream_id);
 }
 
-opj_stream_t* new_stream(OPJ_UINT64 stream_id, OPJ_UINT64 data_size) {
+opj_stream_t* new_stream(OPJ_UINT64 buffer_size, OPJ_UINT64 stream_id, OPJ_UINT64 data_size) {
     opj_stream_t* l_stream = 00;
 
-    l_stream = opj_stream_default_create(1);
+    l_stream = opj_stream_create(buffer_size, 1);
     if (! l_stream) {
         return NULL;
     }

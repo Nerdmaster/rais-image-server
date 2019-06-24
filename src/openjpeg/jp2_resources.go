@@ -69,7 +69,7 @@ func initializeStream(filename string) (*C.opj_stream_t, error) {
 	}
 
 	var s = newImageStream(bytes.NewReader(asset.data))
-	stream := C.new_stream(C.OPJ_UINT64(s.id), C.OPJ_UINT64(len(asset.data)))
+	stream := C.new_stream(C.OPJ_UINT64(1024*10), C.OPJ_UINT64(s.id), C.OPJ_UINT64(len(asset.data)))
 	if stream == nil {
 		return nil, fmt.Errorf("failed to create stream in %#v", filename)
 	}
