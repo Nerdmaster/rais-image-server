@@ -15,7 +15,6 @@ import (
 type Resource struct {
 	Decoder  Decoder
 	ID       iiif.ID
-	FilePath string
 }
 
 // NewResource initializes and returns an Resource for the given id
@@ -23,7 +22,7 @@ type Resource struct {
 // file type that isn't supported, an error is returned.  File type is
 // determined by extension, so images will need standard extensions in order to
 // work.
-func NewResource(id iiif.ID, filepath string) (*Resource, error) {
+func NewResource(id iiif.ID) (*ImageResource, error) {
 	var err error
 
 	// First, does the file exist?

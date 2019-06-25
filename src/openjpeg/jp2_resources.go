@@ -62,8 +62,12 @@ func (i *JP2Image) rawDecode() (jp2 *C.opj_image_t, err error) {
 	return jp2, nil
 }
 
-func initializeStream(filename string) (*C.opj_stream_t, error) {
-	var asset, err = lookupAsset(filename)
+func findJP2Stream(id iiif.ID) {
+	var filepath = iiif
+}
+
+func initializeStream(id iiif.ID) (*C.opj_stream_t, error) {
+	var asset, err = lookupAsset(id)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to lookup %q: %s", filename, err)
 	}

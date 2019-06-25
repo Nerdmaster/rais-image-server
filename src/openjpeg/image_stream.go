@@ -22,12 +22,19 @@ var opjMinusOne64 = opjZero64 - 1
 var opjZeroSizeT C.OPJ_SIZE_T = 0
 var opjMinusOneSizeT = opjZeroSizeT - 1
 
-type imageStream struct {
-	id     uint64
-	stream io.ReadSeeker
+// Streamer is an encapsulation of reading, seeking, and closing so that we can
+// implement JP2 streaming from memory, a file, S3, etc.
+type Streamer interface {
+	io.ReadSeeker
+	io.Closer
 }
 
-func newImageStream(stream io.ReadSeeker) *imageStream {
+type imageStream struct {
+	id     uint64
+	stream Streamer
+}
+
+func newImageStream(stream Streamer) *imageStream {
 	imageStreamMutex.Lock()
 
 	nextStreamID++
@@ -57,10 +64,10 @@ func freeStream(id uint64) {
 }
 
 //export opjStreamRead
-func opjStreamRead(writeBuffer unsafe.Pointer, numBytes C.OPJ_SIZE_T, streamID C.OPJ_UINT64) C.OPJ_SIZE_T {
-	var s, ok = lookupStream(uint64(streamID))
+func opjStreamRead(writeBuffer unsafe.Pointer, numBytes C.OPJ_SIZE_T, id uint64) C.OPJ_SIZE_T {
+	var s, ok = imageStreams[id]
 	if !ok {
-		Logger.Errorf("Unable to find stream %d", streamID)
+		Logger.Errorf("Unable to find stream %d", id)
 		return opjMinusOne64
 	}
 
@@ -73,7 +80,7 @@ func opjStreamRead(writeBuffer unsafe.Pointer, numBytes C.OPJ_SIZE_T, streamID C
 	var n, err = s.stream.Read(data)
 	if err != nil {
 		if err != io.EOF {
-			Logger.Errorf("Unable to read from stream %d: %s", streamID, err)
+			Logger.Errorf("Unable to read from stream %d: %s", id, err)
 		}
 		return opjMinusOne64
 	}
@@ -84,10 +91,10 @@ func opjStreamRead(writeBuffer unsafe.Pointer, numBytes C.OPJ_SIZE_T, streamID C
 //export opjStreamSkip
 //
 // opjStreamSkip jumps numBytes ahead in the stream, discarding any data that would be read
-func opjStreamSkip(numBytes C.OPJ_OFF_T, streamID C.OPJ_UINT64) C.OPJ_SIZE_T {
-	var s, ok = lookupStream(uint64(streamID))
+func opjStreamSkip(numBytes C.OPJ_OFF_T, id uint64) C.OPJ_SIZE_T {
+	var s, ok = imageStreams[id]
 	if !ok {
-		Logger.Errorf("Unable to find stream ID %d", streamID)
+		Logger.Errorf("Unable to find stream ID %d", id)
 		return opjMinusOneSizeT
 	}
 	var _, err = s.stream.Seek(int64(numBytes), io.SeekCurrent)
@@ -103,10 +110,10 @@ func opjStreamSkip(numBytes C.OPJ_OFF_T, streamID C.OPJ_UINT64) C.OPJ_SIZE_T {
 //export opjStreamSeek
 //
 // opjStreamSeek jumps to the absolute position offset in the stream
-func opjStreamSeek(offset C.OPJ_OFF_T, streamID C.OPJ_UINT64) C.OPJ_BOOL {
-	var s, ok = lookupStream(uint64(streamID))
+func opjStreamSeek(offset C.OPJ_OFF_T, id uint64) C.OPJ_BOOL {
+	var s, ok = imageStreams[id]
 	if !ok {
-		Logger.Errorf("Unable to find stream ID %d", streamID)
+		Logger.Errorf("Unable to find stream ID %d", id)
 		return C.OPJ_FALSE
 	}
 	var _, err = s.stream.Seek(int64(offset), io.SeekStart)
