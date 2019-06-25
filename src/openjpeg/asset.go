@@ -15,10 +15,9 @@ var assetMutex sync.Mutex
 var cacheLifetime time.Duration = 5 * time.Minute
 
 type asset struct {
+	sync.Mutex
 	filename   string
 	inUse      bool
-	fs         sync.Mutex
-	lockreader sync.Mutex
 	lastAccess time.Time
 	data       []byte
 	cached     bool
@@ -42,37 +41,10 @@ func lookupAsset(filename string) (*asset, error) {
 	}
 	assetMutex.Unlock()
 
+	a.Lock()
 	a.lastAccess = time.Now().Add(cacheLifetime)
+	a.Unlock()
 	return a, nil
-}
-
-// tryFLock attempts to lock for file writing in a non-blocking way.  If the
-// lock can be acquired, the return is true, otherwise false.
-func (a *asset) tryFLock() bool {
-	a.lockreader.Lock()
-	var inUse = a.inUse
-	if !inUse {
-		a.fs.Lock()
-		a.inUse = true
-	}
-	a.lockreader.Unlock()
-
-	return !inUse
-}
-
-// For when master Yoda's around.  There is no try.
-func (a *asset) fLock() {
-	a.lockreader.Lock()
-	a.fs.Lock()
-	a.inUse = true
-	a.lockreader.Unlock()
-}
-
-func (a *asset) fUnlock() {
-	a.lockreader.Lock()
-	a.inUse = false
-	a.fs.Unlock()
-	a.lockreader.Unlock()
 }
 
 func (a *asset) read() error {
