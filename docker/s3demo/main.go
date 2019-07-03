@@ -11,10 +11,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type asset struct {
@@ -63,23 +59,15 @@ func main() {
 }
 
 func readAssets() {
-	var conf = &aws.Config{Region: &zone}
-	var sess, err = session.NewSession(conf)
-	if err != nil {
-		log.Println("Error trying to instantiate a new AWS session: ", err)
-		os.Exit(1)
+	var contents = []string{
+		"testjp2s/0-Almeida_Junior_.png.jp2",
+		"testjp2s/1-Amedeo_Modigliani_-_.png.jp2",
+		"testjp2s/2-Auguste_Renoir_-_Dan.png.jp2",
+		"testjp2s/3-Bernat_Martorell_-_A.png.jp2",
+		"testjp2s/4-James_McNeill_Whistl.png.jp2",
+		"testjp2s/5-Giovanni_Bellini_-_S.png.jp2",
 	}
-	var svc = s3.New(sess)
-
-	var out *s3.ListObjectsOutput
-	out, err = svc.ListObjects(&s3.ListObjectsInput{Bucket: &bucket})
-	if err != nil {
-		log.Println("Error trying to list objects: ", err)
-		os.Exit(1)
-	}
-
-	for _, obj := range out.Contents {
-		var key = *obj.Key
+	for _, key := range contents {
 		var id = "s3:" + url.PathEscape(key)
 		s3assets = append(s3assets, asset{Title: key, Key: key, IIIFID: id})
 	}
